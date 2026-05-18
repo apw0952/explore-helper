@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>探索小幫手</title>
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="探索小幫手">
+  <link rel="apple-touch-icon" href="logo.webp">
+  
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1a73e8">
+  <link rel="icon" type="image/webp" href="logo.webp">
+
+  <style>
+    :root { --primary: #1a73e8; --bg: #f4f7f6; --text: #333; --accent: #f29900; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); margin: 0; color: var(--text); padding-bottom: 20px; }
+    .header { background: white; padding: 15px 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+    
+    .title { display: flex; align-items: center; justify-content: center; gap: 15px; padding: 10px 0; margin-bottom: 10px; }
+    .title img { height: 56px; width: 56px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); background: var(--primary); }
+    .title-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.2; }
+    .brand-name { font-size: 24px; font-weight: 800; color: #1565c0; letter-spacing: 1px; }
+    .brand-sub { font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 3px; margin-top: 4px; opacity: 0.9; }
+    
+    .user-box { background: #e3f2fd; padding: 8px 15px; border-radius: 10px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; border: 1px solid #bbdefb; }
+    .user-box input { border: none; background: white; padding: 8px; border-radius: 5px; flex: 1; font-weight: bold; color: var(--primary); margin-bottom: 0; }
+
+    .card { background: white; border-radius: 15px; padding: 20px; margin: 15px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+    .section-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #333; }
+    input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; margin-bottom: 15px; font-size: 15px; background: #fafafa; }
+    
+    .btn { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 16px; font-weight: bold; width: 100%; cursor: pointer; transition: transform 0.1s; }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+    
+    .camera-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .upload-btn { background: #f0f7ff; color: #1a73e8; border: 2px dashed #adc6ff; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 90px; font-size: 13px; font-weight: bold; cursor: pointer; position: relative; background-size: cover; background-position: center; overflow: hidden;}
+    .album-btn { background-color: #fffaf0; color: #f29900; border: 2px dashed #ffe0b2; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; height: 50px; margin-bottom: 15px; }
+    .overlay { background: rgba(0,0,0,0.5); color: white; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    input[type="file"] { display: none; }
+    
+    #aiPreviewArea { margin-top: 20px; display: none; }
+    
+    /* 知識卡片樣式 */
+    .knowledge-card { background: #fdfdfd; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .k-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .k-tag { background: #e8f0fe; color: #1a73e8; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+    .k-title { font-size: 18px; font-weight: bold; color: #222; margin-bottom: 8px; line-height: 1.4; }
+    .k-desc { font-size: 15px; color: #555; line-height: 1.6; }
+    
+    #progressBarWrap { width: 100%; height: 6px; background: #eee; border-radius: 10px; overflow: hidden; margin-top: 15px; display: none; }
+    #progressBar { width: 0%; height: 100%; background: var(--primary); transition: width 0.4s ease-out; }
+
+    .install-guide { background: #e3f2fd; border: 1px solid #90caf9; border-radius: 12px; padding: 15px; font-size: 13px; color: #1565c0; line-height: 1.5; margin: 20px; }
+    .install-guide b { color: #0d47a1; display: block; margin-bottom: 5px; font-size: 14px; }
+    
+    #offlineBanner { display: none; background: #ff4d4f; color: white; text-align: center; padding: 8px; font-size: 13px; font-weight: bold; position: sticky; top: 0; z-index: 1000; }
+  </style>
+</head>
+<body>
+
+  <div id="offlineBanner">⚠️ 離線模式：請先拍照，待有網路時再從相簿上傳辨識</div>
+
+  <div class="header">
+    <div class="title">
+      <img src="logo.webp" alt="Logo" onerror="this.style.display='none'">
+      <div class="title-text">
+        <span class="brand-name">探索小幫手</span>
+        <span class="brand-sub">萬物圖鑑 ✕ AI 翻譯</span>
+      </div>
+    </div>
+    
+    <div class="user-box">
+      <span style="font-size: 13px; font-weight: bold; color: #1565c0;">👤 探險家代號:</span>
+      <input type="text" id="mUser" placeholder="輸入你的名字(如: Amy)" onchange="saveUser()">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">📸 拍下你想認識的東西</div>
+    <div class="camera-grid">
+      <label for="pic1" class="upload-btn" id="lbl1" onclick="handleImgClick(event, 1)">📷 拍照片</label>
+      <input type="file" id="pic1" accept="image/*" capture="environment" onchange="previewImg(1)">
+      
+      <label for="pic2" class="upload-btn" id="lbl2" onclick="handleImgClick(event, 2)">📷 拍照片</label>
+      <input type="file" id="pic2" accept="image/*" capture="environment" onchange="previewImg(2)">
+      
+      <label for="pic3" class="upload-btn" id="lbl3" onclick="handleImgClick(event, 3)">📷 拍照片</label>
+      <input type="file" id="pic3" accept="image/*" capture="environment" onchange="previewImg(3)">
+    </div>
+    
+    <label for="album" class="album-btn" id="albumLbl" onclick="handleAlbumClick(event)">🖼️ 或從相簿多選照片 (最多 3 張)</label>
+    <input type="file" id="album" accept="image/*" multiple onchange="previewAlbum()">
+    
+    <div class="section-title" style="margin-top: 15px; font-size: 14px;">💡 補充線索 (選填)</div>
+    <input type="text" id="aiHint" placeholder="例如：這是在海邊拍到的 / 這是菜單...">
+
+    <button id="aiBtn" class="btn" onclick="submitExploreAI()">幫我看看這是什麼 ✨</button>
+    
+    <div id="progressBarWrap"><div id="progressBar"></div></div>
+    <div id="aiStatus" style="margin-top:10px; font-size:14px; color:#666; text-align:center; font-weight:bold;"></div>
+  </div>
+
+  <div id="aiPreviewArea" class="card">
+    <div class="section-title" style="color: var(--primary);">🔍 探索結果</div>
+    <div id="aiItemList"></div>
+    <button class="btn" style="background: white; color: var(--primary); border: 2px solid var(--primary); margin-top: 10px;" onclick="resetForm()">繼續探索新事物</button>
+  </div>
+
+  <div class="install-guide">
+    <b>📱 想要像 App 一樣隨開隨查嗎？</b>
+    Apple (iOS)：點擊 Safari 下方的「分享」按鈕 ➔ 選擇「加入主畫面」。<br>
+    Android：點擊 Chrome 右上角「三個點」 ➔ 選擇「安裝應用程式」或「新增至主畫面」。
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycby5FLb554LEwSvWIt9_roqXadtB9tBVvwufig3Vr88gdLwYGubZiufDoDPhp7a9cg0/exec"; 
+    const APP_TOKEN = "ai-explore-2026"; 
+    
+    let isSubmittingAI = false; 
+
+    window.addEventListener('offline', () => { document.getElementById('offlineBanner').style.display = 'block'; });
+    window.addEventListener('online', () => { document.getElementById('offlineBanner').style.display = 'none'; });
+
+    function saveUser() { localStorage.setItem("explorer_user_id", document.getElementById('mUser').value); }
+    function loadUser() { document.getElementById('mUser').value = localStorage.getItem("explorer_user_id") || ""; }
+
+    function handleImgClick(e, n) { 
+      const input = document.getElementById('pic' + n); 
+      if (input.files?.length > 0) { 
+        e.preventDefault(); 
+        if (confirm("移除照片？")) { 
+          input.value = ""; 
+          const lbl = document.getElementById('lbl' + n); 
+          lbl.style.backgroundImage = 'none'; 
+          lbl.innerHTML = '📷 拍照片'; 
+        } 
+      } 
+    }
+
+    function handleAlbumClick(e) { 
+      const input = document.getElementById('album'); 
+      if (input.files?.length > 0) { 
+        e.preventDefault(); 
+        if (confirm("清除已選相片？")) { 
+          input.value = ""; 
+          document.getElementById('albumLbl').innerText = '🖼️ 或從相簿多選照片 (最多 3 張)'; 
+        } 
+      } 
+    }
+
+    function previewImg(n) { 
+      const f = document.getElementById('pic'+n).files[0]; 
+      if(f) { 
+        document.getElementById('lbl'+n).style.backgroundImage=`url('${URL.createObjectURL(f)}')`; 
+        document.getElementById('lbl'+n).innerHTML='<div class="overlay">✅</div>'; 
+      } 
+    }
+
+    function previewAlbum() { 
+      const filesCount = document.getElementById('album').files.length;
+      if (filesCount > 3) {
+        alert("為了確保辨識品質，一次最多只能選擇 3 張照片喔！");
+        document.getElementById('album').value = "";
+        return;
+      }
+      document.getElementById('albumLbl').innerText = `✅ 已從相簿選取 ${filesCount} 張`; 
+    }
+
+    async function apiPost(payload) { 
+      const user = document.getElementById('mUser').value.trim();
+      if (!user) { 
+        alert("請先填寫上方「探險家代號」，方便為你記錄探索軌跡！"); 
+        throw new Error("NoUser"); 
+      }
+      payload.token = APP_TOKEN; 
+      payload.userId = user; 
+      const controller = new AbortController(); 
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 延長到 60 秒給 AI 辨識
+      try {
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), signal: controller.signal }); 
+        if (!res.ok) throw new Error(); 
+        return await res.json(); 
+      } catch (err) { 
+        if(err.message !== "NoUser") throw new Error("📶 網路有點不穩或是圖片太複雜，我們再試一次～"); 
+        throw err;
+      } finally { 
+        clearTimeout(timeoutId); 
+      }
+    }
+
+    async function submitExploreAI() {
+      if (isSubmittingAI) return;
+      if (!navigator.onLine) {
+        return alert("目前沒有網路！請先拍照存在手機相簿，等有網路時再上傳辨識喔。");
+      }
+
+      const allFiles = [...document.getElementById('pic1').files, ...document.getElementById('pic2').files, ...document.getElementById('pic3').files, ...document.getElementById('album').files].slice(0, 3);
+      if (allFiles.length === 0) return alert("請先拍張照片或從相簿選擇！");
+
+      isSubmittingAI = true; 
+      const btn = document.getElementById('aiBtn');
+      const status = document.getElementById('aiStatus');
+      const progressWrap = document.getElementById('progressBarWrap');
+      const progressBar = document.getElementById('progressBar');
+      const hint = document.getElementById('aiHint').value.trim();
+      
+      document.getElementById('aiPreviewArea').style.display = 'none'; 
+      document.getElementById('aiItemList').innerHTML = "";
+      btn.disabled = true; 
+      btn.innerText = "⏳ 呼叫 AI 辨識中...";
+
+      progressWrap.style.display = 'block';
+      let progress = 0;
+      progressBar.style.width = '0%';
+      
+      const pool = ["🔍 正在仔細觀察圖片...", "📖 翻閱萬物圖鑑中...", "🌐 判斷是不是外文需要翻譯...", "💡 整理出最白話的說明..."];
+      const messages = pool.sort(() => 0.5 - Math.random());
+      let msgIndex = 0;
+      
+      status.style.color = '#1a73e8';
+      status.innerHTML = messages[0];
+      
+      const progressTimer = setInterval(() => {
+        progress += Math.random() * 10;
+        if (progress > 85) progress = 85; 
+        progressBar.style.width = progress + '%';
+        if (msgIndex < messages.length - 1 && progress > (msgIndex + 1) * 25) {
+          msgIndex++;
+          status.innerHTML = messages[msgIndex];
+        }
+      }, 800);
+      
+      try {
+        // 壓縮圖片轉 Base64
+        const base64Imgs = await Promise.all(allFiles.map(f => compressImg(f)));
+        
+        // 呼叫 GAS 後端
+        const data = await apiPost({ 
+            action: "explore_ai", 
+            images: base64Imgs, 
+            contextHint: hint 
+        });
+
+        if (!data.success) throw new Error(data.message);
+        
+        renderKnowledgeCards(data.items); 
+        
+        clearInterval(progressTimer); 
+        progressBar.style.width = '100%';
+        status.style.color = '#34a853';
+        status.innerHTML = `✨ 辨識完成！`;
+        navigator.vibrate?.([50, 50, 50]); 
+        
+      } catch (err) { 
+        clearInterval(progressTimer); 
+        progressWrap.style.display = 'none';
+        status.style.color = '#ff4d4f';
+        navigator.vibrate?.([100, 50, 100]); 
+        if(err.message !== "NoUser") status.innerHTML = `😅 ${err.message || "發生錯誤，請重試"}`; 
+        else status.innerHTML = "";
+      } finally { 
+        btn.disabled = false; 
+        btn.innerText = "幫我看看這是什麼 ✨"; 
+        isSubmittingAI = false; 
+        setTimeout(() => { progressWrap.style.display = 'none'; }, 3000); 
+      }
+    }
+
+    // 渲染 AI 回傳的知識卡片
+    function renderKnowledgeCards(items) {
+      const container = document.getElementById('aiItemList'); 
+      container.innerHTML = "";
+      document.getElementById('aiPreviewArea').style.display = 'block';
+      
+      // 假設後端回傳格式為 { title: "名稱", category: "分類標籤", description: "白話文說明" }
+      items.forEach(item => {
+        const div = document.createElement('div'); 
+        div.className = 'knowledge-card';
+        div.innerHTML = `
+          <div class="k-header">
+            <span class="k-tag">${item.category || '未分類'}</span>
+          </div>
+          <div class="k-title">${item.title || '未知事物'}</div>
+          <div class="k-desc">${item.description || 'AI 暫時無法提供詳細說明。'}</div>
+        `;
+        container.appendChild(div);
+      });
+      
+      // 自動捲動到結果區
+      document.getElementById('aiPreviewArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function compressImg(f) { 
+      return new Promise(res => { 
+        const r = new FileReader(); 
+        r.readAsDataURL(f); 
+        r.onload = e => { 
+          const i = new Image(); 
+          i.src = e.target.result; 
+          i.onload = () => { 
+            const c = document.createElement('canvas'); 
+            let w = i.width, h = i.height, m = 800; // 稍微調高畫質(原為600)以利辨識文字
+            if (w > h) { if (w > m) { h *= m/w; w = m; } } else { if (h > m) { w *= m/h; h = m; } } 
+            c.width = w; c.height = h; 
+            c.getContext('2d').drawImage(i, 0, 0, w, h); 
+            res(c.toDataURL('image/jpeg', 0.7).split(',')[1]); 
+          }; 
+        }; 
+      }); 
+    }
+
+    function resetForm() { 
+      document.querySelectorAll('.upload-btn').forEach(l => { l.style.backgroundImage='none'; l.innerHTML='📷 拍照片'; }); 
+      ['pic1', 'pic2', 'pic3', 'album'].forEach(id => document.getElementById(id).value = ''); 
+      document.getElementById('aiHint').value = '';
+      document.getElementById('albumLbl').innerText = '🖼️ 或從相簿多選照片 (最多 3 張)';
+      document.getElementById('aiPreviewArea').style.display = 'none';
+      document.getElementById('aiStatus').innerHTML = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.onload = () => { 
+      loadUser(); 
+      if(!navigator.onLine) document.getElementById('offlineBanner').style.display = 'block'; 
+    };
+  </script>
+</body>
+</html>
