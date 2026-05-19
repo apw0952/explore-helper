@@ -16,7 +16,7 @@
 
   <style>
     :root { --primary: #1a73e8; --bg: #f4f7f6; --text: #333; --accent: #f29900; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); margin: 0; color: var(--text); padding-bottom: 80px; /* 留更多空間給浮動點餐單 */ }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); margin: 0; color: var(--text); padding-bottom: 80px; }
     
     .header { background: white; padding: 15px 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
     .title { display: flex; align-items: center; justify-content: center; gap: 15px; padding: 10px 0; margin-bottom: 10px; }
@@ -55,7 +55,7 @@
     .k-title { font-size: 18px; font-weight: bold; color: #222; margin-bottom: 8px; line-height: 1.4; }
     .k-desc { font-size: 15px; color: #555; line-height: 1.6; }
 
-    /* ================= 排版樣式二：菜單對照清單與點餐車 ================= */
+    /* ================= 排版樣式二：菜單對照清單 ================= */
     .rule-card { background: #fff8e1; border-left: 5px solid #f29900; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; color: #b27300; font-weight: bold; }
     
     /* 摺疊標題 */
@@ -71,16 +71,21 @@
     .menu-trans { font-size: 16px; color: var(--primary); font-weight: bold; }
     .menu-desc { font-size: 13px; color: #666; margin-top: 2px; }
 
-    /* 加入點餐按鈕 (新增縮放動畫體驗) */
-    .add-btn { background: #e8f0fe; color: #1a73e8; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: -3px; float: right; transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);}
-    .add-btn:active { background: #d2e3fc; transform: scale(0.92); }
+    /* 修改為圓形 Icon Button */
+    .add-btn { background: #e8f0fe; color: #1a73e8; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; cursor: pointer; font-size: 20px; margin-top: -3px; float: right; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);}
+    .add-btn:active { background: #d2e3fc; transform: scale(0.85); box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
 
-    /* 浮動點餐清單 (給店員看的) */
-    .cart-floating { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #fff; border: 2px solid #1565c0; padding: 15px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1000; display: none; max-height: 45vh; overflow-y: auto; }
-    .cart-title { font-weight: 900; color: #1565c0; margin-bottom: 10px; border-bottom: 2px dashed #bbdefb; padding-bottom: 8px; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
-    .clear-cart-btn { background: #fee5e5; color: #d32f2f; border: none; padding: 5px 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; transition: all 0.2s;}
-    .clear-cart-btn:active { transform: scale(0.92); }
-    .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px;}
+    /* 收合式浮動點餐清單 */
+    .cart-floating { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #fff; border: 2px solid #1565c0; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1000; display: none; overflow: hidden; transition: all 0.3s; }
+    .cart-header { padding: 12px 15px; font-weight: 900; color: #1565c0; font-size: 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #f0f7ff; }
+    .cart-content { display: none; padding: 0 15px 15px; max-height: 40vh; overflow-y: auto; border-top: 1px solid #bbdefb; }
+    .cart-floating.expanded .cart-content { display: block; }
+    .expand-icon { font-size: 12px; transition: transform 0.3s; }
+    .cart-floating.expanded .expand-icon { transform: rotate(180deg); }
+    
+    .clear-cart-btn { background: #fee5e5; color: #d32f2f; border: none; padding: 5px 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; transition: all 0.2s; margin-top: 10px; width: 100%;}
+    .clear-cart-btn:active { transform: scale(0.95); }
+    .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px dashed #f0f0f0; padding: 10px 0;}
     .cart-item-name { font-size: 17px; font-weight: 900; color: #000; }
     .cart-item-price { color: #d44a00; font-size: 14px; font-weight: bold; }
     .qty-controls { display: flex; align-items: center; gap: 10px; }
@@ -88,9 +93,9 @@
     .qty-btn:active { background: #d2e3fc; transform: scale(0.85); }
     .qty-num { font-size: 16px; font-weight: bold; min-width: 15px; text-align: center; }
 
-    /* Toast 提示小彈窗 */
-    .toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); background: rgba(0,0,0,0.8); color: white; padding: 12px 24px; border-radius: 30px; font-size: 15px; font-weight: bold; z-index: 9999; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    /* Toast 移到底部置中 */
+    .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) scale(0.9); background: rgba(0,0,0,0.8); color: white; padding: 12px 24px; border-radius: 30px; font-size: 15px; font-weight: bold; z-index: 9999; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .toast.show { opacity: 1; transform: translateX(-50%) scale(1); }
 
     /* ================= 排版樣式三：指示牌摘要卡 ================= */
     .sign-card { background: white; border-radius: 12px; padding: 15px; border-top: 5px solid #f44336; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
@@ -158,11 +163,14 @@
   </div>
 
   <div id="cartArea" class="cart-floating">
-    <div class="cart-title">
-      <span>📝 我的點餐清單</span>
-      <button class="clear-cart-btn" onclick="clearCart()">🗑️ 全部清空</button>
+    <div class="cart-header" onclick="toggleCartExpand()">
+      <span>📝 點餐單 (<span id="cartCount">0</span>)</span>
+      <span class="expand-icon">▼</span>
     </div>
-    <div id="cartItemsList"></div>
+    <div class="cart-content">
+      <div id="cartItemsList"></div>
+      <button class="clear-cart-btn" onclick="clearCart()">🗑️ 全部清空重新點餐</button>
+    </div>
   </div>
 
   <script>
@@ -171,12 +179,20 @@
     
     let isSubmittingAI = false; 
     let currentMode = 'identify';
-    
-    // 全新的獨立購物車變數 (不受清空表單影響)
     let shoppingCart = {};
     let toastTimeout;
 
-    // 開啟 App 時，讀取 localStorage 記憶
+    // XSS 防禦機制：過濾 AI 回傳的所有字串
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     window.onload = () => {
       if(!navigator.onLine) document.getElementById('offlineBanner').style.display = 'block';
       const savedCart = localStorage.getItem('shoppingCart');
@@ -191,7 +207,7 @@
     window.addEventListener('offline', () => { document.getElementById('offlineBanner').style.display = 'block'; });
     window.addEventListener('online', () => { document.getElementById('offlineBanner').style.display = 'none'; });
 
-    // Toast 動畫呼叫函式
+    // Toast 動畫
     function showToast(msg) {
       const t = document.getElementById('toast');
       t.innerText = msg;
@@ -200,9 +216,15 @@
       toastTimeout = setTimeout(() => t.classList.remove('show'), 2000);
     }
 
-    // 儲存購物車狀態至手機
     function saveCartToStorage() {
       localStorage.setItem('shoppingCart', JSON.stringify(shoppingCart));
+    }
+
+    function toggleCartExpand() {
+      const cart = document.getElementById('cartArea');
+      // 如果購物車是空的，不給展開
+      if(Object.keys(shoppingCart).length === 0) return;
+      cart.classList.toggle('expanded');
     }
 
     function switchMode(mode) {
@@ -318,19 +340,20 @@
       container.innerHTML = "";
       document.getElementById('aiPreviewArea').style.display = 'block';
 
+      // 全面套用 XSS 防護
       if (resultType === 'object') {
         payload.items.forEach(item => {
           container.innerHTML += `
             <div class="knowledge-card">
-              <div class="k-tag">${item.category}</div>
-              <div class="k-title">${item.title}</div>
-              <div class="k-desc">${item.description}</div>
+              <div class="k-tag">${escapeHtml(item.category)}</div>
+              <div class="k-title">${escapeHtml(item.title)}</div>
+              <div class="k-desc">${escapeHtml(item.description)}</div>
             </div>`;
         });
       } 
       else if (resultType === 'menu') {
         if (payload.globalRules && payload.globalRules.length > 0) {
-          const rulesHtml = payload.globalRules.map(r => `<div>⚠️ ${r}</div>`).join('');
+          const rulesHtml = payload.globalRules.map(r => `<div>⚠️ ${escapeHtml(r)}</div>`).join('');
           container.innerHTML += `<div class="rule-card"><b>[店家規則]</b><br>${rulesHtml}</div>`;
         }
         
@@ -342,20 +365,20 @@
         });
 
         for (const cat in grouped) {
-          let html = `<details class="menu-group" open><summary class="menu-category">🏷️ ${cat}</summary><div style="padding-top:5px;">`;
+          let html = `<details class="menu-group" open><summary class="menu-category">🏷️ ${escapeHtml(cat)}</summary><div style="padding-top:5px;">`;
           grouped[cat].forEach(item => {
             const badgeHtml = item.isRecommend ? `<span class="menu-badge">🔥 招牌</span>` : '';
             const encOrig = encodeURIComponent(item.original);
             const encPrice = encodeURIComponent(item.price || '');
             html += `
               <div class="menu-item">
-                <div class="menu-price"><span>💰 ${item.price || '無標價'}</span> ${badgeHtml}</div>
+                <div class="menu-price"><span>💰 ${escapeHtml(item.price || '無標價')}</span> ${badgeHtml}</div>
                 <div class="menu-orig">
-                  ${item.original} 
-                  <button class="add-btn" onclick="addToCart('${encOrig}', '${encPrice}')">+ 加入清單</button>
+                  ${escapeHtml(item.original)} 
+                  <button class="add-btn" title="加入點餐單" onclick="addToCart('${encOrig}', '${encPrice}')">＋</button>
                 </div>
-                <div class="menu-trans">${item.translation}</div>
-                <div class="menu-desc">${item.description || ''}</div>
+                <div class="menu-trans">${escapeHtml(item.translation)}</div>
+                <div class="menu-desc">${escapeHtml(item.description || '')}</div>
               </div>`;
           });
           html += `</div></details>`;
@@ -367,11 +390,11 @@
         const cssClass = isWarning ? 'sign-card' : 'sign-card info';
         const icon = isWarning ? '⚠️ 警告 / 禁止' : 'ℹ️ 告示 / 說明';
         
-        const bulletsHtml = payload.bullets.map(b => `<div class="sign-bullet">${b}</div>`).join('');
+        const bulletsHtml = payload.bullets.map(b => `<div class="sign-bullet">${escapeHtml(b)}</div>`).join('');
         container.innerHTML += `
           <div class="${cssClass}">
             <div style="color: ${isWarning ? '#d32f2f' : '#1a73e8'}; font-weight:bold; font-size:13px;">[${icon}]</div>
-            <div class="sign-title">${payload.mainIdea}</div>
+            <div class="sign-title">${escapeHtml(payload.mainIdea)}</div>
             <hr style="border:0; border-top:1px dashed #ddd; margin:10px 0;">
             ${bulletsHtml}
           </div>`;
@@ -380,9 +403,7 @@
       document.getElementById('aiPreviewArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // ================= 進階點餐車邏輯 (含持久化與貨幣計算) =================
     function addToCart(origEncoded, priceEncoded) {
-      // 點擊觸發震動與 Toast 反饋
       navigator.vibrate?.(30);
       showToast("✅ 已加入點餐單");
 
@@ -415,6 +436,8 @@
       if (confirm("確定要清空所有點好的餐點嗎？")) {
         shoppingCart = {};
         saveCartToStorage();
+        // 清空時自動把購物車收合
+        document.getElementById('cartArea').classList.remove('expanded');
         renderCart();
       }
     }
@@ -422,42 +445,46 @@
     function renderCart() {
       const cartArea = document.getElementById('cartArea');
       const list = document.getElementById('cartItemsList');
+      const countEl = document.getElementById('cartCount');
       const keys = Object.keys(shoppingCart);
 
       if(keys.length === 0) {
         cartArea.style.display = 'none';
+        cartArea.classList.remove('expanded');
+        countEl.innerText = '0';
         return;
       }
 
       cartArea.style.display = 'block';
+      
       let html = '';
       let totalSum = 0;
+      let totalItems = 0;
       let currPrefix = "";
       let currSuffix = "";
 
       keys.forEach(k => {
         const item = shoppingCart[k];
         const encOrig = encodeURIComponent(item.original);
+        totalItems += item.qty;
         
-        // --- 超智慧貨幣與金額擷取邏輯 ---
         const priceStr = String(item.price || "");
-        // 把所有的非數字字元濾掉，只留數字做數學加總
         const numPrice = parseFloat(priceStr.replace(/[^\d.-]/g, '')) || 0;
         totalSum += numPrice * item.qty;
 
-        // 偵測原始價格中的貨幣符號 (如 ¥, ₩, €, 円) 並記住它
         if (priceStr && !currPrefix && !currSuffix) {
-           const matchPref = priceStr.match(/^[^\d\s]+/); // 抓前面的符號 (如 ¥980)
-           const matchSuff = priceStr.match(/[^\d\s]+$/); // 抓後面的符號 (如 980円)
+           const matchPref = priceStr.match(/^[^\d\s]+/); 
+           const matchSuff = priceStr.match(/[^\d\s]+$/); 
            if (matchPref) currPrefix = matchPref[0];
            if (matchSuff) currSuffix = matchSuff[0];
         }
         
+        // 渲染時對購物車的內容也加上 XSS 防護
         html += `
           <div class="cart-item">
             <div style="flex:1; padding-right:10px;">
-              <div class="cart-item-name">${item.original}</div>
-              <div class="cart-item-price">${item.price}</div>
+              <div class="cart-item-name">${escapeHtml(item.original)}</div>
+              <div class="cart-item-price">${escapeHtml(item.price)}</div>
             </div>
             <div class="qty-controls">
               <button class="qty-btn" onclick="updateQty('${encOrig}', -1)">-</button>
@@ -467,12 +494,13 @@
           </div>`;
       });
 
-      // 如果有算出總金額，就把總計區塊畫上去！
+      countEl.innerText = totalItems;
+
       if (totalSum > 0) {
         html += `
-          <div style="border-top: 2px dashed #bbdefb; margin-top: 15px; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 900; color: #1565c0;">
+          <div style="border-top: 2px solid #1565c0; margin-top: 10px; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 900; color: #1565c0;">
             <span>總計</span>
-            <span style="color: #d44a00; font-size: 22px;">${currPrefix}${totalSum.toLocaleString()}${currSuffix}</span>
+            <span style="color: #d44a00; font-size: 22px;">${escapeHtml(currPrefix)}${totalSum.toLocaleString()}${escapeHtml(currSuffix)}</span>
           </div>`;
       }
 
@@ -488,7 +516,9 @@
             const c = document.createElement('canvas'); 
             let w = i.width, h = i.height, m = 1000; 
             if (w > h) { if (w > m) { h *= m/w; w = m; } } else { if (h > m) { w *= m/h; h = m; } } 
-            c.width = w; c.height = h; c.getContext('2d').drawImage(i, 0, 0, w, h); 
+            c.width = w; c.height = h; 
+            // 現代瀏覽器 (iOS 13.4+) 大多已原生支援 EXIF 自動旋轉。若遇舊設備，建議後續引入 exif-js 處理。
+            c.getContext('2d').drawImage(i, 0, 0, w, h); 
             res(c.toDataURL('image/jpeg', 0.7).split(',')[1]); 
           }; 
         }; 
