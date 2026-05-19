@@ -16,7 +16,7 @@
 
   <style>
     :root { --primary: #1a73e8; --bg: #f4f7f6; --text: #333; --accent: #f29900; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); margin: 0; color: var(--text); padding-bottom: 20px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); margin: 0; color: var(--text); padding-bottom: 60px; /* 留空間給浮動點餐單 */ }
     
     .header { background: white; padding: 15px 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
     .title { display: flex; align-items: center; justify-content: center; gap: 15px; padding: 10px 0; margin-bottom: 10px; }
@@ -55,15 +55,31 @@
     .k-title { font-size: 18px; font-weight: bold; color: #222; margin-bottom: 8px; line-height: 1.4; }
     .k-desc { font-size: 15px; color: #555; line-height: 1.6; }
 
-    /* ================= 排版樣式二：菜單對照清單 ================= */
+    /* ================= 排版樣式二：菜單對照清單與點餐車 ================= */
     .rule-card { background: #fff8e1; border-left: 5px solid #f29900; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; color: #b27300; font-weight: bold; }
-    .menu-category { font-size: 16px; font-weight: bold; margin: 20px 0 10px; color: #1565c0; border-bottom: 2px solid #e3f2fd; padding-bottom: 5px; }
-    .menu-item { background: white; border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid #eee; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; }
-    .menu-price { font-weight: 900; color: #d44a00; font-size: 16px; display: flex; justify-content: space-between; }
+    
+    /* 摺疊標題 */
+    summary.menu-category { font-size: 16px; font-weight: bold; margin: 15px 0 5px; color: #1565c0; border-bottom: 2px solid #e3f2fd; padding-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; list-style: none; }
+    summary.menu-category::-webkit-details-marker { display: none; }
+    summary.menu-category::after { content: "▼"; font-size: 12px; color: #888; }
+    details[open] summary.menu-category::after { content: "▲"; }
+    
+    .menu-item { background: white; border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid #eee; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .menu-price { font-weight: 900; color: #d44a00; font-size: 16px; display: flex; justify-content: space-between; align-items: center;}
     .menu-badge { background: #fee5e5; color: #d32f2f; font-size: 11px; padding: 2px 6px; border-radius: 4px; }
     .menu-orig { font-size: 20px; font-weight: 900; color: #000; letter-spacing: 1px; margin: 2px 0;}
     .menu-trans { font-size: 16px; color: var(--primary); font-weight: bold; }
     .menu-desc { font-size: 13px; color: #666; margin-top: 2px; }
+
+    /* 加入點餐按鈕 */
+    .add-btn { background: #e8f0fe; color: #1a73e8; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: -3px; float: right; transition: 0.2s;}
+    .add-btn.added { background: #fce8e6; color: #d32f2f; border: 1px solid #fad2cf; }
+
+    /* 浮動點餐清單 (給店員看的) */
+    .cart-floating { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #fff; border: 2px solid #1565c0; padding: 15px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1000; display: none; max-height: 40vh; overflow-y: auto; }
+    .cart-title { font-weight: 900; color: #1565c0; margin-bottom: 10px; border-bottom: 2px dashed #bbdefb; padding-bottom: 8px; font-size: 16px; text-align: center; }
+    .cart-item { display: flex; justify-content: space-between; font-size: 18px; font-weight: 900; margin-bottom: 8px; color: #000; border-bottom: 1px solid #eee; padding-bottom: 5px;}
+    .cart-item-price { color: #d44a00; }
 
     /* ================= 排版樣式三：指示牌摘要卡 ================= */
     .sign-card { background: white; border-radius: 12px; padding: 15px; border-top: 5px solid #f44336; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
@@ -128,12 +144,21 @@
     Android：選單 ➔ 安裝應用程式
   </div>
 
+  <div id="cartArea" class="cart-floating">
+    <div class="cart-title">📝 我的點餐清單 (出示給店員)</div>
+    <div id="cartItemsList"></div>
+  </div>
+
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxwSKGr0_89UN3XrtiGF9UYcHYXeCd2rSE-EoodvMTf32IU3oiKqfJN1V2JbdsPG_q8/exec"; 
     const APP_TOKEN = "ai-explore-2026"; 
     
     let isSubmittingAI = false; 
-    let currentMode = 'identify'; // 預設模式
+    let currentMode = 'identify';
+    
+    // 購物車變數
+    let orderCart = [];
+    let currentMenuItems = [];
 
     window.addEventListener('offline', () => { document.getElementById('offlineBanner').style.display = 'block'; });
     window.addEventListener('online', () => { document.getElementById('offlineBanner').style.display = 'none'; });
@@ -247,14 +272,12 @@
     }
 
     // ================= 核心渲染邏輯 =================
-    // 這裡會根據後端傳來的 resultType 決定畫出哪種卡片
     function renderResults(resultType, payload) {
       const container = document.getElementById('aiItemList'); 
       container.innerHTML = "";
       document.getElementById('aiPreviewArea').style.display = 'block';
 
       if (resultType === 'object') {
-        // 排版一：萬物圖鑑
         payload.items.forEach(item => {
           container.innerHTML += `
             <div class="knowledge-card">
@@ -265,30 +288,45 @@
         });
       } 
       else if (resultType === 'menu') {
-        // 排版二：菜單翻譯 (含置頂規則與價格對照)
+        // 全域規則置頂
         if (payload.globalRules && payload.globalRules.length > 0) {
           const rulesHtml = payload.globalRules.map(r => `<div>⚠️ ${r}</div>`).join('');
           container.innerHTML += `<div class="rule-card"><b>[店家規則]</b><br>${rulesHtml}</div>`;
         }
         
-        let currentCategory = "";
-        payload.items.forEach(item => {
-          if (item.category && item.category !== currentCategory) {
-            currentCategory = item.category;
-            container.innerHTML += `<div class="menu-category">🏷️ ${currentCategory}</div>`;
-          }
-          const badgeHtml = item.isRecommend ? `<span class="menu-badge">🔥 招牌</span>` : '';
-          container.innerHTML += `
-            <div class="menu-item">
-              <div class="menu-price"><span>💰 ${item.price || '無標價'}</span> ${badgeHtml}</div>
-              <div class="menu-orig">${item.original}</div>
-              <div class="menu-trans">${item.translation}</div>
-              <div class="menu-desc">${item.description || ''}</div>
-            </div>`;
+        // 將 payload 的陣列存入全域，方便點餐車讀取
+        currentMenuItems = payload.items;
+        
+        // 依照 category 群組化 (使用 details 摺疊標籤)
+        const grouped = {};
+        payload.items.forEach((item, index) => {
+          item._idx = index; // 綁定陣列索引
+          const cat = item.category || '未分類';
+          if (!grouped[cat]) grouped[cat] = [];
+          grouped[cat].push(item);
         });
+
+        for (const cat in grouped) {
+          // details 標籤預設 open (展開)
+          let html = `<details class="menu-group" open><summary class="menu-category">🏷️ ${cat}</summary><div style="padding-top:5px;">`;
+          grouped[cat].forEach(item => {
+            const badgeHtml = item.isRecommend ? `<span class="menu-badge">🔥 招牌</span>` : '';
+            html += `
+              <div class="menu-item">
+                <div class="menu-price"><span>💰 ${item.price || '無標價'}</span> ${badgeHtml}</div>
+                <div class="menu-orig">
+                  ${item.original} 
+                  <button class="add-btn" id="btn-${item._idx}" onclick="toggleCart(${item._idx})">+ 點餐</button>
+                </div>
+                <div class="menu-trans">${item.translation}</div>
+                <div class="menu-desc">${item.description || ''}</div>
+              </div>`;
+          });
+          html += `</div></details>`;
+          container.innerHTML += html;
+        }
       }
       else if (resultType === 'sign') {
-        // 排版三：告示牌摘要
         const isWarning = payload.level === 'warning';
         const cssClass = isWarning ? 'sign-card' : 'sign-card info';
         const icon = isWarning ? '⚠️ 警告 / 禁止' : 'ℹ️ 告示 / 說明';
@@ -306,6 +344,36 @@
       document.getElementById('aiPreviewArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
+    // ================= 點餐車邏輯 =================
+    function toggleCart(idx) {
+      const i = orderCart.indexOf(idx);
+      const btn = document.getElementById(`btn-${idx}`);
+      if(i > -1) {
+        orderCart.splice(i, 1);
+        btn.innerText = "+ 點餐";
+        btn.classList.remove("added");
+      } else {
+        orderCart.push(idx);
+        btn.innerText = "- 移除";
+        btn.classList.add("added");
+      }
+      renderCart();
+    }
+    
+    function renderCart() {
+      const cartArea = document.getElementById('cartArea');
+      const list = document.getElementById('cartItemsList');
+      if(orderCart.length === 0) {
+        cartArea.style.display = 'none';
+        return;
+      }
+      cartArea.style.display = 'block';
+      list.innerHTML = orderCart.map(idx => {
+        const item = currentMenuItems[idx];
+        return `<div class="cart-item"><span>${item.original}</span> <span class="cart-item-price">${item.price || ''}</span></div>`;
+      }).join('');
+    }
+
     async function compressImg(f) { 
       return new Promise(res => { 
         const r = new FileReader(); r.readAsDataURL(f); 
@@ -313,7 +381,7 @@
           const i = new Image(); i.src = e.target.result; 
           i.onload = () => { 
             const c = document.createElement('canvas'); 
-            let w = i.width, h = i.height, m = 1000; // 翻譯需要高畫質，調高至 1000
+            let w = i.width, h = i.height, m = 1000; 
             if (w > h) { if (w > m) { h *= m/w; w = m; } } else { if (h > m) { w *= m/h; h = m; } } 
             c.width = w; c.height = h; c.getContext('2d').drawImage(i, 0, 0, w, h); 
             res(c.toDataURL('image/jpeg', 0.7).split(',')[1]); 
@@ -329,6 +397,12 @@
       document.getElementById('albumLbl').innerText = '🖼️ 或從相簿多選照片 (最多 3 張)';
       document.getElementById('aiPreviewArea').style.display = 'none';
       document.getElementById('aiStatus').innerHTML = '';
+      
+      // 清空點餐車
+      orderCart = [];
+      currentMenuItems = [];
+      document.getElementById('cartArea').style.display = 'none';
+
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   </script>
