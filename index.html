@@ -71,20 +71,26 @@
     .menu-trans { font-size: 16px; color: var(--primary); font-weight: bold; }
     .menu-desc { font-size: 13px; color: #666; margin-top: 2px; }
 
-    /* 加入點餐按鈕 */
-    .add-btn { background: #e8f0fe; color: #1a73e8; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: -3px; float: right; transition: 0.2s;}
-    .add-btn:active { background: #d2e3fc; }
+    /* 加入點餐按鈕 (新增縮放動畫體驗) */
+    .add-btn { background: #e8f0fe; color: #1a73e8; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: -3px; float: right; transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);}
+    .add-btn:active { background: #d2e3fc; transform: scale(0.92); }
 
     /* 浮動點餐清單 (給店員看的) */
     .cart-floating { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #fff; border: 2px solid #1565c0; padding: 15px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1000; display: none; max-height: 45vh; overflow-y: auto; }
     .cart-title { font-weight: 900; color: #1565c0; margin-bottom: 10px; border-bottom: 2px dashed #bbdefb; padding-bottom: 8px; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
-    .clear-cart-btn { background: #fee5e5; color: #d32f2f; border: none; padding: 5px 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; }
+    .clear-cart-btn { background: #fee5e5; color: #d32f2f; border: none; padding: 5px 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; transition: all 0.2s;}
+    .clear-cart-btn:active { transform: scale(0.92); }
     .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px;}
     .cart-item-name { font-size: 17px; font-weight: 900; color: #000; }
     .cart-item-price { color: #d44a00; font-size: 14px; font-weight: bold; }
     .qty-controls { display: flex; align-items: center; gap: 10px; }
-    .qty-btn { background: #f0f7ff; border: 1px solid #adc6ff; color: #1a73e8; border-radius: 50%; width: 28px; height: 28px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .qty-btn { background: #f0f7ff; border: 1px solid #adc6ff; color: #1a73e8; border-radius: 50%; width: 28px; height: 28px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s; }
+    .qty-btn:active { background: #d2e3fc; transform: scale(0.85); }
     .qty-num { font-size: 16px; font-weight: bold; min-width: 15px; text-align: center; }
+
+    /* Toast 提示小彈窗 */
+    .toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); background: rgba(0,0,0,0.8); color: white; padding: 12px 24px; border-radius: 30px; font-size: 15px; font-weight: bold; z-index: 9999; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
     /* ================= 排版樣式三：指示牌摘要卡 ================= */
     .sign-card { background: white; border-radius: 12px; padding: 15px; border-top: 5px solid #f44336; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
@@ -99,6 +105,8 @@
   </style>
 </head>
 <body>
+
+  <div id="toast" class="toast">✅ 已加入點餐單</div>
 
   <div id="offlineBanner">⚠️ 離線模式：請先拍照，待有網路時再從相簿上傳辨識</div>
 
@@ -165,11 +173,37 @@
     let currentMode = 'identify';
     
     // 全新的獨立購物車變數 (不受清空表單影響)
-    // 結構：{ "菜單原文": { original: "...", price: "...", qty: 1 } }
     let shoppingCart = {};
+    let toastTimeout;
+
+    // 開啟 App 時，讀取 localStorage 記憶
+    window.onload = () => {
+      if(!navigator.onLine) document.getElementById('offlineBanner').style.display = 'block';
+      const savedCart = localStorage.getItem('shoppingCart');
+      if (savedCart) {
+        try { 
+          shoppingCart = JSON.parse(savedCart); 
+          renderCart(); 
+        } catch(e) { console.error(e); }
+      }
+    };
 
     window.addEventListener('offline', () => { document.getElementById('offlineBanner').style.display = 'block'; });
     window.addEventListener('online', () => { document.getElementById('offlineBanner').style.display = 'none'; });
+
+    // Toast 動畫呼叫函式
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // 儲存購物車狀態至手機
+    function saveCartToStorage() {
+      localStorage.setItem('shoppingCart', JSON.stringify(shoppingCart));
+    }
 
     function switchMode(mode) {
       currentMode = mode;
@@ -279,7 +313,6 @@
       }
     }
 
-    // ================= 核心渲染邏輯 =================
     function renderResults(resultType, payload) {
       const container = document.getElementById('aiItemList'); 
       container.innerHTML = "";
@@ -312,7 +345,6 @@
           let html = `<details class="menu-group" open><summary class="menu-category">🏷️ ${cat}</summary><div style="padding-top:5px;">`;
           grouped[cat].forEach(item => {
             const badgeHtml = item.isRecommend ? `<span class="menu-badge">🔥 招牌</span>` : '';
-            // 使用 encodeURIComponent 避免引號破壞 HTML 結構
             const encOrig = encodeURIComponent(item.original);
             const encPrice = encodeURIComponent(item.price || '');
             html += `
@@ -348,8 +380,12 @@
       document.getElementById('aiPreviewArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // ================= 進階點餐車邏輯 =================
+    // ================= 進階點餐車邏輯 (含持久化與貨幣計算) =================
     function addToCart(origEncoded, priceEncoded) {
+      // 點擊觸發震動與 Toast 反饋
+      navigator.vibrate?.(30);
+      showToast("✅ 已加入點餐單");
+
       const orig = decodeURIComponent(origEncoded);
       const price = decodeURIComponent(priceEncoded);
       
@@ -357,24 +393,28 @@
         shoppingCart[orig] = { original: orig, price: price, qty: 0 };
       }
       shoppingCart[orig].qty += 1;
+      
+      saveCartToStorage();
       renderCart();
     }
 
     function updateQty(origEncoded, delta) {
+      navigator.vibrate?.(20);
       const orig = decodeURIComponent(origEncoded);
       if (shoppingCart[orig]) {
         shoppingCart[orig].qty += delta;
-        // 如果數量扣到 0 以下，就從購物車移除該品項
         if (shoppingCart[orig].qty <= 0) {
           delete shoppingCart[orig];
         }
       }
+      saveCartToStorage();
       renderCart();
     }
 
     function clearCart() {
       if (confirm("確定要清空所有點好的餐點嗎？")) {
         shoppingCart = {};
+        saveCartToStorage();
         renderCart();
       }
     }
@@ -391,9 +431,28 @@
 
       cartArea.style.display = 'block';
       let html = '';
+      let totalSum = 0;
+      let currPrefix = "";
+      let currSuffix = "";
+
       keys.forEach(k => {
         const item = shoppingCart[k];
         const encOrig = encodeURIComponent(item.original);
+        
+        // --- 超智慧貨幣與金額擷取邏輯 ---
+        const priceStr = String(item.price || "");
+        // 把所有的非數字字元濾掉，只留數字做數學加總
+        const numPrice = parseFloat(priceStr.replace(/[^\d.-]/g, '')) || 0;
+        totalSum += numPrice * item.qty;
+
+        // 偵測原始價格中的貨幣符號 (如 ¥, ₩, €, 円) 並記住它
+        if (priceStr && !currPrefix && !currSuffix) {
+           const matchPref = priceStr.match(/^[^\d\s]+/); // 抓前面的符號 (如 ¥980)
+           const matchSuff = priceStr.match(/[^\d\s]+$/); // 抓後面的符號 (如 980円)
+           if (matchPref) currPrefix = matchPref[0];
+           if (matchSuff) currSuffix = matchSuff[0];
+        }
+        
         html += `
           <div class="cart-item">
             <div style="flex:1; padding-right:10px;">
@@ -407,6 +466,16 @@
             </div>
           </div>`;
       });
+
+      // 如果有算出總金額，就把總計區塊畫上去！
+      if (totalSum > 0) {
+        html += `
+          <div style="border-top: 2px dashed #bbdefb; margin-top: 15px; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 900; color: #1565c0;">
+            <span>總計</span>
+            <span style="color: #d44a00; font-size: 22px;">${currPrefix}${totalSum.toLocaleString()}${currSuffix}</span>
+          </div>`;
+      }
+
       list.innerHTML = html;
     }
 
@@ -434,7 +503,6 @@
       document.getElementById('aiPreviewArea').style.display = 'none';
       document.getElementById('aiStatus').innerHTML = '';
       
-      // 注意：這裡移除了清空點餐車的程式碼，讓購物車跨頁保留！
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   </script>
