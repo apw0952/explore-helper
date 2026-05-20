@@ -52,7 +52,7 @@
     /* ================= 排版樣式一：萬物圖鑑卡 ================= */
     .knowledge-card { background: #fdfdfd; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid var(--accent); }
     .k-tag { display: inline-block; background: #e8f0fe; color: #1a73e8; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-bottom: 8px; }
-    .k-title { font-size: 18px; font-weight: bold; color: #222; margin-bottom: 8px; line-height: 1.4; }
+    .k-title { font-size: 18px; font-weight: bold; color: #222; margin-bottom: 8px; line-height: 1.4; display: flex; align-items: center;}
     .k-desc { font-size: 15px; color: #555; line-height: 1.6; }
 
     /* ================= 排版樣式二：菜單對照清單 ================= */
@@ -182,7 +182,7 @@
     let shoppingCart = {};
     let toastTimeout;
 
-    // XSS 防禦機制：過濾 AI 回傳的所有字串
+    // XSS 防禦機制
     function escapeHtml(str) {
       if (!str) return "";
       return String(str)
@@ -207,7 +207,6 @@
     window.addEventListener('offline', () => { document.getElementById('offlineBanner').style.display = 'block'; });
     window.addEventListener('online', () => { document.getElementById('offlineBanner').style.display = 'none'; });
 
-    // Toast 動畫
     function showToast(msg) {
       const t = document.getElementById('toast');
       t.innerText = msg;
@@ -222,7 +221,6 @@
 
     function toggleCartExpand() {
       const cart = document.getElementById('cartArea');
-      // 如果購物車是空的，不給展開
       if(Object.keys(shoppingCart).length === 0) return;
       cart.classList.toggle('expanded');
     }
@@ -316,10 +314,23 @@
       }, 800);
       
       try {
-        const base64Imgs = await Promise.all(allFiles.map(f => compressImg(f)));
-        const data = await apiPost({ action: "explore_ai", mode: currentMode, images: base64Imgs, contextHint: document.getElementById('aiHint').value.trim() });
-        if (!data.success) throw new Error(data.message);
+        // [新增] 單次快閃抓取定位 (最多等 2 秒)
+        let geoHint = "";
+        try {
+          if (navigator.geolocation) {
+            const pos = await new Promise((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 2000, maximumAge: 60000 });
+            });
+            geoHint = ` (📍 經緯度座標: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`;
+          }
+        } catch(e) { /* 若未授權或超時，安靜忽略，不卡住流程 */ }
         
+        const finalHint = document.getElementById('aiHint').value.trim() + geoHint;
+
+        const base64Imgs = await Promise.all(allFiles.map(f => compressImg(f)));
+        const data = await apiPost({ action: "explore_ai", mode: currentMode, images: base64Imgs, contextHint: finalHint });
+        
+        if (!data.success) throw new Error(data.message);
         renderResults(data.resultType, data.payload); 
         
         clearInterval(progressTimer); progressBar.style.width = '100%';
@@ -340,21 +351,35 @@
       container.innerHTML = "";
       document.getElementById('aiPreviewArea').style.display = 'block';
 
-      // 全面套用 XSS 防護
       if (resultType === 'object') {
         payload.items.forEach(item => {
+          const encTitle = encodeURIComponent(item.title);
+          // [新增] 一鍵 Google 搜尋的彩色 G Icon
+          const gIcon = `<a href="https://www.google.com/search?q=${encTitle}" target="_blank" style="text-decoration:none; margin-left:8px; display:inline-block; vertical-align:middle;" title="在 Google 搜尋">
+              <svg width="18" height="18" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+              </svg>
+            </a>`;
+
           container.innerHTML += `
             <div class="knowledge-card">
               <div class="k-tag">${escapeHtml(item.category)}</div>
-              <div class="k-title">${escapeHtml(item.title)}</div>
+              <div class="k-title">${escapeHtml(item.title)}${gIcon}</div>
               <div class="k-desc">${escapeHtml(item.description)}</div>
             </div>`;
         });
       } 
       else if (resultType === 'menu') {
+        // [新增] 儲存店家規則給購物車使用
         if (payload.globalRules && payload.globalRules.length > 0) {
+          localStorage.setItem('cartRules', JSON.stringify(payload.globalRules));
           const rulesHtml = payload.globalRules.map(r => `<div>⚠️ ${escapeHtml(r)}</div>`).join('');
           container.innerHTML += `<div class="rule-card"><b>[店家規則]</b><br>${rulesHtml}</div>`;
+        } else {
+          localStorage.removeItem('cartRules'); // 確保別家店的規則不會留下
         }
         
         const grouped = {};
@@ -436,7 +461,7 @@
       if (confirm("確定要清空所有點好的餐點嗎？")) {
         shoppingCart = {};
         saveCartToStorage();
-        // 清空時自動把購物車收合
+        localStorage.removeItem('cartRules'); // 同步清空規則
         document.getElementById('cartArea').classList.remove('expanded');
         renderCart();
       }
@@ -479,7 +504,6 @@
            if (matchSuff) currSuffix = matchSuff[0];
         }
         
-        // 渲染時對購物車的內容也加上 XSS 防護
         html += `
           <div class="cart-item">
             <div style="flex:1; padding-right:10px;">
@@ -497,9 +521,22 @@
       countEl.innerText = totalItems;
 
       if (totalSum > 0) {
+        // [新增] 讀取並顯示低調的店家規則驚嘆號
+        let rulesIcon = "";
+        try {
+          const savedRules = localStorage.getItem('cartRules');
+          if (savedRules) {
+            const rulesArr = JSON.parse(savedRules);
+            if (rulesArr.length > 0) {
+              const alertText = escapeHtml(rulesArr.join('\\n')).replace(/'/g, "\\'"); // 處理單引號防錯
+              rulesIcon = `<span style="cursor:pointer; margin-left:8px; font-size:16px;" onclick="alert('⚠️ 店家注意事項：\\n\\n${alertText}')" title="查看店家規定">⚠️</span>`;
+            }
+          }
+        } catch(e) {}
+
         html += `
           <div style="border-top: 2px solid #1565c0; margin-top: 10px; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 900; color: #1565c0;">
-            <span>總計</span>
+            <span style="display:flex; align-items:center;">總計 ${rulesIcon}</span>
             <span style="color: #d44a00; font-size: 22px;">${escapeHtml(currPrefix)}${totalSum.toLocaleString()}${escapeHtml(currSuffix)}</span>
           </div>`;
       }
@@ -517,7 +554,6 @@
             let w = i.width, h = i.height, m = 1000; 
             if (w > h) { if (w > m) { h *= m/w; w = m; } } else { if (h > m) { w *= m/h; h = m; } } 
             c.width = w; c.height = h; 
-            // 現代瀏覽器 (iOS 13.4+) 大多已原生支援 EXIF 自動旋轉。若遇舊設備，建議後續引入 exif-js 處理。
             c.getContext('2d').drawImage(i, 0, 0, w, h); 
             res(c.toDataURL('image/jpeg', 0.7).split(',')[1]); 
           }; 
