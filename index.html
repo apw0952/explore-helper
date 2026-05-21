@@ -328,7 +328,16 @@
         const finalHint = document.getElementById('aiHint').value.trim() + geoHint;
 
         const base64Imgs = await Promise.all(allFiles.map(f => compressImg(f)));
-        const data = await apiPost({ action: "explore_ai", mode: currentMode, images: base64Imgs, contextHint: finalHint });
+        const currentTimestamp = Date.now();
+        const randomNonce = Math.random().toString(36).substring(2, 15);
+        const data = await apiPost({ 
+          action: "explore_ai", 
+          mode: currentMode, 
+          images: base64Imgs, 
+          contextHint: finalHint,
+          timestamp: currentTimestamp,
+          nonce: randomNonce
+        });
         
         if (!data.success) throw new Error(data.message);
         renderResults(data.resultType, data.payload); 
@@ -528,8 +537,8 @@
           if (savedRules) {
             const rulesArr = JSON.parse(savedRules);
             if (rulesArr.length > 0) {
-              const alertText = escapeHtml(rulesArr.join('\\n')).replace(/'/g, "\\'"); // 處理單引號防錯
-              rulesIcon = `<span style="cursor:pointer; margin-left:8px; font-size:16px;" onclick="alert('⚠️ 店家注意事項：\\n\\n${alertText}')" title="查看店家規定">⚠️</span>`;
+              const alertText = escapeHtml(rulesArr.join('\n')).replace(/'/g, "\\'"); // 處理單引號防錯
+              rulesIcon = `<span style="cursor:pointer; margin-left:8px; font-size:16px;" onclick="alert('⚠️ 店家注意事項：\n\n${alertText}')" title="查看店家規定">⚠️</span>`;
             }
           }
         } catch(e) {}
