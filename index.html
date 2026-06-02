@@ -560,11 +560,11 @@
           const i = new Image(); i.src = e.target.result; 
           i.onload = () => { 
             const c = document.createElement('canvas'); 
-            let w = i.width, h = i.height, m = 1000; 
+            let w = i.width, h = i.height, m = 700; 
             if (w > h) { if (w > m) { h *= m/w; w = m; } } else { if (h > m) { w *= m/h; h = m; } } 
             c.width = w; c.height = h; 
             c.getContext('2d').drawImage(i, 0, 0, w, h); 
-            res(c.toDataURL('image/jpeg', 0.7).split(',')[1]); 
+            res(c.toDataURL('image/jpeg', 0.45).split(',')[1]); 
           }; 
         }; 
       }); 
